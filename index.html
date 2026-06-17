@@ -481,100 +481,136 @@ function fileToB64(file) {
 // ===== DOCX BUILD =====
 async function buildDocx(rows, dept, cardNo, month) {
   const zip = new JSZip();
-  const imageRels = {};
-  let rIdC = 2;
 
-  rows.forEach(row=>{
-    row.imgs.forEach(img=>{
-      const rId=`rId${rIdC++}`;
-      imageRels[rId]={b64:img.b64,ext:img.ext};
-      img.rId=rId;
+  // 이미지 rId 할당 (rId9부터 — 앞 8개는 docx 라이브러리 표준 파일들)
+  let rIdC = 9;
+  rows.forEach(row => {
+    (row.imgs||[]).forEach(img => {
+      const rId = `rId${rIdC++}`;
+      img.rId = rId;
+      zip.file(`word/media/${rId}.${img.ext}`, img.b64, {base64:true});
     });
   });
 
-  for (const [rId,rel] of Object.entries(imageRels)) {
-    zip.file(`word/media/${rId}.${rel.ext}`,rel.b64,{base64:true});
-  }
+  // ===== 검증된 보조 XML 파일들 (docx 라이브러리로 생성 후 검증된 것) =====
+  const B64 = s => atob(s); // base64 디코딩 헬퍼
 
-  const exts=new Set(Object.values(imageRels).map(r=>r.ext));
-  const ctD=[
-    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
-    '<Default Extension="xml" ContentType="application/xml"/>',
-  ];
-  if (exts.has('jpeg')) ctD.push('<Default Extension="jpeg" ContentType="image/jpeg"/>');
-  if (exts.has('png')) ctD.push('<Default Extension="png" ContentType="image/png"/>');
-
-  zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="utf-8"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  ${ctD.join('\n  ')}
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-  <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
+  <Default ContentType="image/png" Extension="png"/>
+  <Default ContentType="image/jpeg" Extension="jpeg"/>
+  <Default ContentType="image/jpeg" Extension="jpg"/>
+  <Default ContentType="application/vnd.openxmlformats-package.relationships+xml" Extension="rels"/>
+  <Default ContentType="application/xml" Extension="xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" PartName="/word/document.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml" PartName="/word/styles.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml" PartName="/word/settings.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml" PartName="/word/numbering.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml" PartName="/word/footnotes.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml" PartName="/word/endnotes.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml" PartName="/word/comments.xml"/>
+  <Override ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml" PartName="/word/fontTable.xml"/>
 </Types>`);
 
-  zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('_rels/.rels', `<?xml version="1.0" encoding="utf-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
 
-  const relE=[`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`];
-  for (const [rId,rel] of Object.entries(imageRels)) {
-    relE.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${rId}.${rel.ext}"/>`);
-  }
-  zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  // document.xml.rels — 표준 파일들 + 이미지들
+  const imgRels = rows.flatMap(r => (r.imgs||[]).filter(i=>i.rId).map(i =>
+    `<Relationship Id="${i.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${i.rId}.${i.ext}"/>`
+  )).join('\n  ');
+
+  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="utf-8"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  ${relE.join('\n  ')}
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/>
+  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>
+  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes" Target="endnotes.xml"/>
+  <Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/>
+  <Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments" Target="comments.xml"/>
+  <Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/>
+  ${imgRels}
 </Relationships>`);
 
-  zip.file('word/settings.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:defaultTabStop w:val="720"/></w:settings>`);
-  zip.file('word/styles.xml',stylesXml());
+  // 보조 XML 파일들 — 검증된 버전 그대로
+  zip.file('word/styles.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6c3R5bGVzIHhtbG5zOm1jPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvbWFya3VwLWNvbXBhdGliaWxpdHkvMjAwNiIgeG1sbnM6cj0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcyIgeG1sbnM6dz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3dvcmRwcm9jZXNzaW5nbWwvMjAwNi9tYWluIiB4bWxuczp3MTQ9Imh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vb2ZmaWNlL3dvcmQvMjAxMC93b3JkbWwiIHhtbG5zOncxNT0iaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS9vZmZpY2Uvd29yZC8yMDEyL3dvcmRtbCIgbWM6SWdub3JhYmxlPSJ3MTQgdzE1Ij4KICA8dzpkb2NEZWZhdWx0cz4KICAgIDx3OnJQckRlZmF1bHQvPgogICAgPHc6cFByRGVmYXVsdC8+CiAgPC93OmRvY0RlZmF1bHRzPgo8L3c6c3R5bGVzPgo='));
+  zip.file('word/settings.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6c2V0dGluZ3MgeG1sbnM6dz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3dvcmRwcm9jZXNzaW5nbWwvMjAwNi9tYWluIj4KICA8dzpkZWZhdWx0VGFiU3RvcCB3OnZhbD0iNzIwIi8+CjwvdzpzZXR0aW5ncz4K'));
+  zip.file('word/numbering.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6bnVtYmVyaW5nIHhtbG5zOnc9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy93b3JkcHJvY2Vzc2luZ21sLzIwMDYvbWFpbiIvPgo='));
+  zip.file('word/footnotes.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6Zm9vdG5vdGVzIHhtbG5zOnc9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy93b3JkcHJvY2Vzc2luZ21sLzIwMDYvbWFpbiIvPgo='));
+  zip.file('word/endnotes.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6ZW5kbm90ZXMgeG1sbnM6dz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3dvcmRwcm9jZXNzaW5nbWwvMjAwNi9tYWluIi8+Cg=='));
+  zip.file('word/comments.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6Y29tbWVudHMgeG1sbnM6dz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3dvcmRwcm9jZXNzaW5nbWwvMjAwNi9tYWluIi8+Cg=='));
+  zip.file('word/fontTable.xml', atob('PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHc6Zm9udHMgeG1sbnM6dz0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL3dvcmRwcm9jZXNzaW5nbWwvMjAwNi9tYWluIi8+Cg=='));
 
   // ===== document.xml =====
-  // A4 세로: 11906 x 16838, 여백 720
-  const PW=11906, PH=16838, MG=720;
-  const CW=PW-MG*2; // 10466
-
-  const F='Malgun Gothic';
+  const F = 'Malgun Gothic';
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
 
-  // 테이블 셀
-  function tc(text,w,opts={}) {
-    const fill=opts.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${opts.fill}"/>`:'';
-    const b=opts.b?'<w:b/><w:bCs/>':'';
-    const sz=opts.sz||22;
-    const jc=opts.jc?`<w:jc w:val="${opts.jc}"/>`:'';
-    const span=opts.span?`<w:gridSpan w:val="${opts.span}"/>`:'';
-    const vAlign=`<w:vAlign w:val="${opts.va||'center'}"/>`;
+  // 셀 공통 테두리
+  const CELL_BRD = `<w:tcBorders>
+    <w:top w:val="single" w:color="000000" w:sz="8"/>
+    <w:left w:val="single" w:color="000000" w:sz="8"/>
+    <w:bottom w:val="single" w:color="000000" w:sz="8"/>
+    <w:right w:val="single" w:color="000000" w:sz="8"/>
+  </w:tcBorders>`;
+  const CELL_MAR = `<w:tcMar>
+    <w:top w:type="dxa" w:w="80"/><w:left w:type="dxa" w:w="120"/>
+    <w:bottom w:type="dxa" w:w="80"/><w:right w:type="dxa" w:w="120"/>
+  </w:tcMar>`;
+
+  function labelTc(text, w) {
     return `<w:tc>
-  <w:tcPr>${span}<w:tcW w:w="${w}" w:type="dxa"/>${fill}${vAlign}
-    <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>
+  <w:tcPr><w:tcW w:type="dxa" w:w="${w}"/>${CELL_BRD}
+    <w:shd w:fill="D9E2F3" w:val="clear"/>
+    ${CELL_MAR}<w:vAlign w:val="center"/>
   </w:tcPr>
-  <w:p><w:pPr>${jc}<w:rPr>${b}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr></w:pPr>
-  <w:r><w:rPr>${b}<w:sz w:val="${sz}"/><w:szCs w:val="${sz}"/><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r>
+  <w:p><w:pPr><w:jc w:val="left"/></w:pPr>
+  <w:r><w:rPr><w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
+    <w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/>
+  </w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>
 </w:tc>`;
   }
 
-  // 이미지 드로잉
-  let drawId=1;
-  function imgDrawing(rId,emuW,emuH) {
-    const id=drawId++;
+  function valTc(text, w, opts={}) {
+    const span = opts.span ? `<w:gridSpan w:val="${opts.span}"/>` : '';
+    const jc = opts.jc || 'left';
+    const bold = opts.bold ? '<w:b/><w:bCs/>' : '<w:b w:val="false"/><w:bCs w:val="false"/>';
+    return `<w:tc>
+  <w:tcPr><w:tcW w:type="dxa" w:w="${w}"/>${span}${CELL_BRD}${CELL_MAR}<w:vAlign w:val="center"/>
+  </w:tcPr>
+  <w:p><w:pPr><w:jc w:val="${jc}"/></w:pPr>
+  <w:r><w:rPr><w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
+    ${bold}<w:sz w:val="22"/><w:szCs w:val="22"/>
+  </w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>
+</w:tc>`;
+  }
+
+  // 이미지 drawing
+  let drawId = 1;
+  function makeDrawing(rId, emuW, emuH) {
+    const id = drawId++;
     return `<w:drawing>
-  <wp:inline distT="0" distB="0" distL="0" distR="0"
-    xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+  <wp:inline distT="0" distB="0" distL="0" distR="0" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
     <wp:extent cx="${emuW}" cy="${emuH}"/>
-    <wp:effectExtent l="0" t="0" r="0" b="0"/>
-    <wp:docPr id="${id}" name="Img${id}"/>
-    <wp:cNvGraphicFramePr/>
+    <wp:effectExtent t="0" r="0" b="0" l="0"/>
+    <wp:docPr id="${id}" name="" descr="" title=""/>
+    <wp:cNvGraphicFramePr>
+      <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+    </wp:cNvGraphicFramePr>
     <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
       <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
         <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-          <pic:nvPicPr><pic:cNvPr id="${id}" name="Img${id}"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr>
+          <pic:nvPicPr>
+            <pic:cNvPr id="0" name="" descr=""/>
+            <pic:cNvPicPr><a:picLocks noChangeAspect="1" noChangeArrowheads="1"/></pic:cNvPicPr>
+          </pic:nvPicPr>
           <pic:blipFill>
-            <a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+            <a:blip r:embed="${rId}" cstate="none" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+            <a:srcRect/>
             <a:stretch><a:fillRect/></a:stretch>
           </pic:blipFill>
-          <pic:spPr>
+          <pic:spPr bwMode="auto">
             <a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm>
             <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
           </pic:spPr>
@@ -585,165 +621,165 @@ async function buildDocx(rows, dept, cardNo, month) {
 </w:drawing>`;
   }
 
-  // ===== 양식 테이블 =====
-  // 컬럼 설계 (총 CW=10466)
-  // 행1: 레이블(1300) 값(1900) 레이블(1300) 값(2366) 레이블(1300) 값(1300) ≈ 9466... 조정
-  // 균등 6칸: 레이블 1200, 값 1544.33 → 정수화
-  // 실제: L=1200, V=1544 → (1200+1544)*3 = 8232 (너무 작음)
-  // CW=10466, 6칸: 레이블3×1200=3600, 값3개 합=6866 → 각 값=2289
-  const L=1200, V=Math.floor((CW-L*3)/3); // V=2288
-  // 행2,3: 2쌍 → L=1200, V=(CW-L*2)/2 = (10466-2400)/2 = 4033
-  const L2=1200, V2=Math.floor((CW-L2*2)/2); // 4033
+  // 치수 상수
+  const PW = 11906, PH = 16838, MG = 720;
+  const CW = PW - MG * 2; // 10466
+  const L = 1200, V = Math.floor((CW - L * 3) / 3); // L=1200, V=1688
+  const V3 = V + L + V; // span3 값 셀 너비 = 4576
 
-  // 이미지 행: 전체 병합
-  // 이미지 영역 높이: 페이지 남은 공간
-  // 메타 테이블 높이 약 2000 DXA (4행×500), 제목 약 700 → 나머지 ≈ PH-MG*2-2700 = 12538
-  const IMG_H_DXA = 12000;
+  // 이미지 행 높이 (DXA): 전체 - 제목(700) - 3행(500×3=1500) = ~13266 → 여유있게 11500
+  const IMG_H = 11500;
 
-  const BRD=`<w:tblBorders>
-    <w:top w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-    <w:left w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-    <w:bottom w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-    <w:right w:val="single" w:sz="8" w:space="0" w:color="000000"/>
-    <w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/>
-    <w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/>
-  </w:tblBorders>`;
+  function makePageXml(row) {
+    // 제목
+    const title = `<w:p>
+  <w:pPr><w:spacing w:after="240"/><w:jc w:val="center"/></w:pPr>
+  <w:r><w:rPr>
+    <w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
+    <w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>
+  </w:rPr><w:t xml:space="preserve">카  드  영  수  증</w:t></w:r>
+</w:p>`;
 
-  function makeTable(row) {
-    // 그리드: 6칸 (행1 기준)
-    const g6=`${[L,V,L,V,L,V].map(c=>`<w:gridCol w:w="${c}"/>`).join('')}`;
+    // 테이블
+    // 행1: 연번(L) | 값(V) | 부서(L) | 값(V) | 카드번호(L) | 값(V)
+    const r1 = `<w:tr>
+  <w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+  ${labelTc('연  번', L)}
+  ${valTc(String(row.idx), V, {jc:'center', bold:true})}
+  ${labelTc('부  서', L)}
+  ${valTc(row.dept, V)}
+  ${labelTc('카드번호', L)}
+  ${valTc(row.cardNo, V, {jc:'center'})}
+</w:tr>`;
 
-    // 행1: 연번 | 값 | 부서 | 값 | 카드번호 | 값
-    const r1=`<w:tr><w:trPr><w:trHeight w:val="520" w:hRule="atLeast"/></w:trPr>
-      ${tc('연  번',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(String(row.idx),V,{b:true,sz:22,jc:'center'})}
-      ${tc('부  서',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.dept,V,{sz:22})}
-      ${tc('카드번호',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.cardNo,V,{sz:22,jc:'center'})}
-    </w:tr>`;
+    // 행2: 영수증일자(L) | 값(V3=span3) | 금액(L) | 값(V)
+    const r2 = `<w:tr>
+  <w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+  ${labelTc('영수증 일자', L)}
+  ${valTc(row.date, V3, {span:3})}
+  ${labelTc('금  액', L)}
+  ${valTc(row.amtDisplay, V, {jc:'right', bold:true})}
+</w:tr>`;
 
-    // 행2: 영수증 일자 | 값(span3) | 금액 | 값(span1)
-    // span 써서 2쌍으로: 레이블(1200)+값(L+V+L+V-1200)... 그냥 gridSpan 활용
-    // 행2: L2(1200) V2(4033) L2(1200) V2(4033) — 4칸인데 6칸 그리드에 맞춰야 함
-    // gridSpan으로 처리
-    const V2a = V+L+V; // 2288+1200+2288=5776 → 3칸 span
-    const r2=`<w:tr><w:trPr><w:trHeight w:val="520" w:hRule="atLeast"/></w:trPr>
-      ${tc('영수증 일자',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.date,V2a,{sz:22,span:3})}
-      ${tc('금  액',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.amtDisplay,V,{sz:22,b:true,jc:'right'})}
-    </w:tr>`;
+    // 행3: 사용처(L) | 값(V3=span3) | 적요(L) | 값(V)
+    const r3 = `<w:tr>
+  <w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+  ${labelTc('사 용 처', L)}
+  ${valTc(row.merchant, V3, {span:3})}
+  ${labelTc('적  요', L)}
+  ${valTc(row.memo||'', V)}
+</w:tr>`;
 
-    // 행3: 사용처 | 값(span3) | 적요 | 값(span1)
-    const r3=`<w:tr><w:trPr><w:trHeight w:val="520" w:hRule="atLeast"/></w:trPr>
-      ${tc('사 용 처',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.merchant,V2a,{sz:22,span:3})}
-      ${tc('적  요',L,{fill:'D9E2F3',b:true,sz:20})}
-      ${tc(row.memo||'',V,{sz:22})}
-    </w:tr>`;
-
-    // 행4 (이미지): 전체 병합 (6칸 span)
-    const imgContent = makeImgCell(row.imgs);
-    const r4=`<w:tr><w:trPr><w:trHeight w:val="${IMG_H_DXA}" w:hRule="exact"/></w:trPr>
-      <w:tc>
-        <w:tcPr><w:gridSpan w:val="6"/><w:tcW w:w="${CW}" w:type="dxa"/><w:vAlign w:val="center"/>
-          <w:tcMar><w:top w:w="120" w:type="dxa"/><w:bottom w:w="120" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>
-        </w:tcPr>
-        ${imgContent}
-      </w:tc>
-    </w:tr>`;
-
-    return `<w:tbl>
-  <w:tblPr>
-    <w:tblW w:w="${CW}" w:type="dxa"/>
-    <w:tblLayout w:type="fixed"/>
-    ${BRD}
-  </w:tblPr>
-  <w:tblGrid>${g6}</w:tblGrid>
-  ${r1}${r2}${r3}${r4}
-</w:tbl>`;
-  }
-
-  function makeImgCell(imgs) {
-    if (!imgs||!imgs.length) {
-      return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:color w:val="DC2626"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr><w:t>(영수증 이미지 없음)</w:t></w:r></w:p>`;
-    }
-
-    if (imgs.length===1) {
-      // 세로 꽉 채우기
-      const emuW=Math.round((CW-240)*914400/1440);
-      const emuH=Math.round((IMG_H_DXA-300)*914400/1440);
-      return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:rPr/>${imgDrawing(imgs[0].rId,emuW,emuH)}</w:r></w:p>`;
+    // 행4: 이미지 (6칸 병합)
+    const imgs = row.imgs || [];
+    let imgContent;
+    if (!imgs.length) {
+      imgContent = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr>
+  <w:r><w:rPr><w:color w:val="DC2626"/><w:sz w:val="20"/><w:szCs w:val="20"/>
+    <w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
+  </w:rPr><w:t>(영수증 이미지 없음)</w:t></w:r></w:p>`;
+    } else if (imgs.length === 1) {
+      const emuW = Math.round((CW - 240) * 914400 / 1440);
+      const emuH = Math.round((IMG_H - 400) * 914400 / 1440);
+      imgContent = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr>
+  <w:r><w:rPr/>${makeDrawing(imgs[0].rId, emuW, emuH)}</w:r></w:p>`;
     } else {
       // 이미지 2개: 나란히
-      const emuW=Math.round((CW/2-300)*914400/1440);
-      const emuH=Math.round((IMG_H_DXA-300)*914400/1440);
-      const drawings=imgs.map(img=>`<w:r><w:rPr/>${imgDrawing(img.rId,emuW,emuH)}</w:r>`).join('');
-      return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/></w:pPr>${drawings}</w:p>`;
+      const emuW = Math.round(((CW / 2) - 300) * 914400 / 1440);
+      const emuH = Math.round((IMG_H - 400) * 914400 / 1440);
+      imgContent = `<w:p><w:pPr><w:jc w:val="center"/></w:pPr>
+  ${imgs.map(img => `<w:r><w:rPr/>${makeDrawing(img.rId, emuW, emuH)}</w:r>`).join('')}
+</w:p>`;
     }
+
+    const r4 = `<w:tr>
+  <w:trPr><w:trHeight w:val="${IMG_H}" w:hRule="exact"/></w:trPr>
+  <w:tc>
+    <w:tcPr>
+      <w:tcW w:type="dxa" w:w="${CW}"/>
+      <w:gridSpan w:val="6"/>
+      ${CELL_BRD}
+      <w:tcMar>
+        <w:top w:type="dxa" w:w="120"/><w:left w:type="dxa" w:w="120"/>
+        <w:bottom w:type="dxa" w:w="120"/><w:right w:type="dxa" w:w="120"/>
+      </w:tcMar>
+      <w:vAlign w:val="center"/>
+    </w:tcPr>
+    ${imgContent}
+  </w:tc>
+</w:tr>`;
+
+    const tbl = `<w:tbl>
+  <w:tblPr>
+    <w:tblW w:type="dxa" w:w="${CW}"/>
+    <w:tblLayout w:type="fixed"/>
+    <w:tblBorders>
+      <w:top w:val="single" w:color="auto" w:sz="4"/>
+      <w:left w:val="single" w:color="auto" w:sz="4"/>
+      <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+      <w:right w:val="single" w:color="auto" w:sz="4"/>
+      <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+      <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+    </w:tblBorders>
+  </w:tblPr>
+  <w:tblGrid>
+    <w:gridCol w:w="${L}"/><w:gridCol w:w="${V}"/>
+    <w:gridCol w:w="${L}"/><w:gridCol w:w="${V}"/>
+    <w:gridCol w:w="${L}"/><w:gridCol w:w="${V}"/>
+  </w:tblGrid>
+  ${r1}${r2}${r3}${r4}
+</w:tbl>`;
+
+    return title + tbl;
   }
 
-  // 본문 조립
-  let body='';
-  rows.forEach((row,i)=>{
-    const isLast=(i===rows.length-1);
-    // 제목
-    body+=`<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="240"/><w:rPr><w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr></w:pPr>
-<w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr><w:t>카  드  영  수  증</w:t></w:r></w:p>`;
-    // 양식 테이블
-    body+=makeTable(row);
-    // 페이지 나누기
-    if (!isLast) body+=`<w:p><w:pPr><w:pageBreakBefore/><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>`;
+  // 전체 본문
+  let bodyContent = '';
+  rows.forEach((row, i) => {
+    bodyContent += makePageXml(row);
+    if (i < rows.length - 1) {
+      bodyContent += `<w:p><w:pPr><w:pageBreakBefore/><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>`;
+    }
   });
 
-  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  const docXml = `<?xml version="1.0" encoding="UTF-8"?>
+<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
   xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
-  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
-  xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+  xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+  xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"
+  mc:Ignorable="w14 w15">
 <w:body>
-${body}
+${bodyContent}
 <w:sectPr>
-  <w:pgSz w:w="${PW}" w:h="${PH}"/>
-  <w:pgMar w:top="${MG}" w:right="${MG}" w:bottom="${MG}" w:left="${MG}"/>
+  <w:pgSz w:w="${PW}" w:h="${PH}" w:orient="portrait"/>
+  <w:pgMar w:top="${MG}" w:right="${MG}" w:bottom="${MG}" w:left="${MG}" w:header="708" w:footer="708" w:gutter="0"/>
+  <w:pgNumType/>
+  <w:docGrid w:linePitch="360"/>
 </w:sectPr>
 </w:body>
 </w:document>`;
 
-  zip.file('word/document.xml',docXml);
-  updateProgress('파일 압축 중...','');
-  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',compression:'DEFLATE',compressionOptions:{level:6}});
-  const fname=`증빙자료_${(month||'').replace('-','년')}월_${dept}_${cardNo}_카드영수증.docx`;
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=fname; document.body.appendChild(a); a.click();
+  zip.file('word/document.xml', docXml);
+
+  updateProgress('파일 압축 중...', '');
+  const blob = await zip.generateAsync({
+    type: 'blob',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    compression: 'DEFLATE',
+    compressionOptions: {level: 6},
+  });
+
+  const fname = `증빙자료_${(month||'').replace('-','년')}월_${dept}_${cardNo}_카드영수증.docx`;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fname; document.body.appendChild(a); a.click();
   document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-function stylesXml() {
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults><w:rPrDefault><w:rPr>
-    <w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/>
-    <w:sz w:val="22"/><w:szCs w:val="22"/>
-  </w:rPr></w:rPrDefault></w:docDefaults>
-  <w:style w:type="table" w:styleId="TableGrid">
-    <w:name w:val="Table Grid"/>
-    <w:tblPr><w:tblBorders>
-      <w:top w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      <w:left w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      <w:right w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      <w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-      <w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>
-    </w:tblBorders></w:tblPr>
-  </w:style>
-</w:styles>`;
-}
 
 // ===== PROGRESS =====
 function showProgress(msg,sub){
