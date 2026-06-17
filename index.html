@@ -565,7 +565,7 @@ async function buildDocx(rows, dept, cardNo, month) {
     <w:shd w:fill="D9E2F3" w:val="clear"/>
     ${CELL_MAR}<w:vAlign w:val="center"/>
   </w:tcPr>
-  <w:p><w:pPr><w:jc w:val="left"/></w:pPr>
+  <w:p><w:pPr><w:jc w:val="center"/></w:pPr>
   <w:r><w:rPr><w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
     <w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/>
   </w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>
@@ -627,20 +627,32 @@ async function buildDocx(rows, dept, cardNo, month) {
   const L = 1200, V = Math.floor((CW - L * 3) / 3); // L=1200, V=1688
   const V3 = V + L + V; // span3 값 셀 너비 = 4576
 
-  // 이미지 행 높이 (DXA): 전체 - 제목(700) - 3행(500×3=1500) = ~13266 → 여유있게 11500
-  const IMG_H = 11500;
+  // 이미지 행 높이: 전체 - 제목행(700) - 3행(500×3=1500) = 10466 여유있게 10000
+  const IMG_H = 10000;
 
   function makePageXml(row) {
-    // 제목
-    const title = `<w:p>
-  <w:pPr><w:spacing w:after="240"/><w:jc w:val="center"/></w:pPr>
-  <w:r><w:rPr>
-    <w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
-    <w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>
-  </w:rPr><w:t xml:space="preserve">카  드  영  수  증</w:t></w:r>
-</w:p>`;
+    // 행0: 제목 — 표 안, 6칸 전체 병합
+    const r0 = `<w:tr>
+  <w:trPr><w:trHeight w:val="700" w:hRule="atLeast"/></w:trPr>
+  <w:tc>
+    <w:tcPr>
+      <w:tcW w:type="dxa" w:w="${CW}"/>
+      <w:gridSpan w:val="6"/>
+      ${CELL_BRD}
+      <w:tcMar>
+        <w:top w:type="dxa" w:w="100"/><w:left w:type="dxa" w:w="120"/>
+        <w:bottom w:type="dxa" w:w="100"/><w:right w:type="dxa" w:w="120"/>
+      </w:tcMar>
+      <w:vAlign w:val="center"/>
+    </w:tcPr>
+    <w:p><w:pPr><w:jc w:val="center"/></w:pPr>
+    <w:r><w:rPr>
+      <w:rFonts w:ascii="${F}" w:cs="${F}" w:eastAsia="${F}" w:hAnsi="${F}"/>
+      <w:b/><w:bCs/><w:sz w:val="36"/><w:szCs w:val="36"/>
+    </w:rPr><w:t xml:space="preserve">카  드  영  수  증</w:t></w:r></w:p>
+  </w:tc>
+</w:tr>`;
 
-    // 테이블
     // 행1: 연번(L) | 값(V) | 부서(L) | 값(V) | 카드번호(L) | 값(V)
     const r1 = `<w:tr>
   <w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
@@ -727,10 +739,10 @@ async function buildDocx(rows, dept, cardNo, month) {
     <w:gridCol w:w="${L}"/><w:gridCol w:w="${V}"/>
     <w:gridCol w:w="${L}"/><w:gridCol w:w="${V}"/>
   </w:tblGrid>
-  ${r1}${r2}${r3}${r4}
+  ${r0}${r1}${r2}${r3}${r4}
 </w:tbl>`;
 
-    return title + tbl;
+    return tbl;
   }
 
   // 전체 본문
