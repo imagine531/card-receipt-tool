@@ -162,7 +162,24 @@ const BRAND_MAP = {
   'baemin':['우아한형제들','배달의민족','배민'],
   'coupangeats':['쿠팡이츠'],'yogiyo':['요기요'],
 };
-const MEAL_KEYWORDS = ['중식','석식','조식','야근택시비','택시비','간식','커피','회식','업무식사','노션','줌','슬랙','구글','구독료','노션구독','zoom구독'];
+const MEAL_KEYWORDS = [
+  {kw:'야근택시비', match:['야근택시비','야근택시']},
+  {kw:'택시비',    match:['택시비']},
+  {kw:'택시비',    match:['택시']},   // '택시' 단독도 택시비
+  {kw:'택시비',    match:['taxi','카카오택시','카카오t']},  // 영어/카카오택시
+  {kw:'중식',      match:['중식']},
+  {kw:'석식',      match:['석식']},
+  {kw:'조식',      match:['조식']},
+  {kw:'간식',      match:['간식']},
+  {kw:'커피',      match:['커피','coffee']},
+  {kw:'회식',      match:['회식']},
+  {kw:'업무식사',  match:['업무식사']},
+  {kw:'노션구독',  match:['노션','notion']},
+  {kw:'줌구독',    match:['줌','zoom']},
+  {kw:'슬랙구독',  match:['슬랙','slack']},
+  {kw:'구글구독',  match:['구글','google']},
+  {kw:'구독료',    match:['구독']},
+];
 
 function normName(s) {
   if (!s) return '';
@@ -194,9 +211,11 @@ function dateKey(s) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function extractMemo(filename) {
-  const n = filename.replace(/\.[^.]+$/,''); // remove ext
-  for (const kw of MEAL_KEYWORDS) if (n.includes(kw)) return kw;
-  // fallback: first Korean word
+  const n = filename.replace(/\.[^.]+$/,'').toLowerCase();
+  for (const {kw, match} of MEAL_KEYWORDS) {
+    if (match.some(m => n.includes(m))) return kw;
+  }
+  // fallback: 첫 한글 단어
   const m = n.match(/[가-힣]+/);
   return m ? m[0] : '';
 }
