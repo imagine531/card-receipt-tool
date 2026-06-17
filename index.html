@@ -7,201 +7,73 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --navy: #1a2e4a;
-    --teal: #0f7b7b;
-    --teal-light: #e8f5f5;
-    --gray-50: #f8fafc;
-    --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0;
-    --gray-400: #94a3b8;
-    --gray-600: #475569;
-    --gray-800: #1e293b;
-    --green: #059669;
-    --green-light: #d1fae5;
-    --red: #dc2626;
-    --red-light: #fee2e2;
-    --orange: #d97706;
-    --orange-light: #fef3c7;
-  }
-  body {
-    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, sans-serif;
-    font-size: 14px;
-    color: var(--gray-800);
-    background: var(--gray-50);
-    min-height: 100vh;
-  }
-  .header {
-    background: var(--navy);
-    color: white;
-    padding: 18px 32px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .header h1 { font-size: 17px; font-weight: 600; }
-  .header span { font-size: 13px; color: #94a3b8; margin-left: 4px; }
-  .container { max-width: 960px; margin: 0 auto; padding: 28px 20px; }
-
-  .card {
-    background: white;
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-  }
-  .card-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--gray-600);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .card-title .step {
-    background: var(--navy);
-    color: white;
-    width: 20px; height: 20px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-  }
-
-  .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .upload-zone {
-    border: 1.5px dashed var(--gray-200);
-    border-radius: 8px;
-    padding: 22px 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.15s;
-    position: relative;
-    background: var(--gray-50);
-  }
-  .upload-zone:hover, .upload-zone.drag-over {
-    border-color: var(--teal);
-    background: var(--teal-light);
-  }
-  .upload-zone.done { border-color: var(--green); background: var(--green-light); border-style: solid; }
-  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-  .upload-icon { font-size: 26px; margin-bottom: 6px; }
-  .upload-label { font-size: 13px; font-weight: 500; color: var(--gray-600); }
-  .upload-sub { font-size: 12px; color: var(--gray-400); margin-top: 3px; }
-  .upload-done { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 4px; }
-
-  .config-row { display: flex; gap: 12px; margin-top: 14px; align-items: flex-end; flex-wrap: wrap; }
-  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
-  .field label { font-size: 12px; color: var(--gray-600); font-weight: 500; }
-  .field input, .field select {
-    border: 1px solid var(--gray-200);
-    border-radius: 6px;
-    padding: 7px 10px;
-    font-size: 13px;
-    font-family: inherit;
-    background: white;
-    color: var(--gray-800);
-  }
-  .field input:focus, .field select:focus { outline: none; border-color: var(--teal); }
-
-  .btn {
-    padding: 9px 20px;
-    border-radius: 7px;
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    font-family: inherit;
-    font-weight: 600;
-    transition: all 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .btn-primary { background: var(--teal); color: white; }
-  .btn-primary:hover { background: #0a6464; }
-  .btn-primary:disabled { background: var(--gray-200); color: var(--gray-400); cursor: not-allowed; }
-  .btn-navy { background: var(--navy); color: white; }
-  .btn-navy:hover { background: #142338; }
-  .btn-outline { background: white; border: 1px solid var(--gray-200); color: var(--gray-800); }
-  .btn-outline:hover { border-color: var(--teal); color: var(--teal); }
-  .btn-lg { padding: 12px 28px; font-size: 14px; }
-
-  /* Status table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  thead tr { background: var(--navy); color: white; }
-  th { padding: 10px 12px; text-align: left; font-weight: 500; font-size: 12px; white-space: nowrap; }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--gray-100); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: var(--gray-50); }
-
-  .badge {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600;
-  }
-  .badge-ok { background: var(--green-light); color: var(--green); }
-  .badge-no { background: var(--red-light); color: var(--red); }
-  .badge-pdf { background: #ede9fe; color: #6d28d9; }
-  .badge-manual { background: var(--orange-light); color: var(--orange); }
-
-  .summary-bar {
-    display: flex; gap: 16px; padding: 14px 0; flex-wrap: wrap;
-  }
-  .summary-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
-  .summary-num { font-size: 20px; font-weight: 700; }
-  .summary-num.green { color: var(--green); }
-  .summary-num.red { color: var(--red); }
-  .summary-num.navy { color: var(--navy); }
-  .divider { width: 1px; background: var(--gray-200); height: 36px; }
-
-  .action-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
-
-  .alert {
-    padding: 10px 14px; border-radius: 7px; font-size: 13px;
-    margin-bottom: 12px; display: flex; align-items: flex-start; gap: 8px;
-  }
-  .alert-warn { background: var(--orange-light); color: #92400e; border: 1px solid #fcd34d; }
-  .alert-info { background: var(--teal-light); color: #065f46; border: 1px solid #6ee7b7; }
-
-  .progress-overlay {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5); z-index: 100;
-    align-items: center; justify-content: center;
-  }
-  .progress-overlay.show { display: flex; }
-  .progress-box {
-    background: white; border-radius: 12px; padding: 32px 40px;
-    text-align: center; min-width: 260px;
-  }
-  .spinner {
-    width: 40px; height: 40px; border: 3px solid var(--gray-200);
-    border-top-color: var(--teal); border-radius: 50%;
-    animation: spin 0.8s linear infinite; margin: 0 auto 16px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .progress-msg { font-size: 14px; color: var(--gray-600); }
-
-  .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--gray-200); }
-  .no-thumb { width: 40px; height: 40px; background: var(--gray-100); border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--gray-400); font-size: 18px; }
-
-  .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); }
-  .empty-state .icon { font-size: 40px; margin-bottom: 8px; }
-
-  .dept-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
-  /* Manual upload per row */
-  .manual-upload-btn {
-    font-size: 11px; padding: 3px 8px; border-radius: 4px;
-    border: 1px solid var(--orange); color: var(--orange);
-    background: white; cursor: pointer; white-space: nowrap;
-  }
-  .manual-upload-btn:hover { background: var(--orange-light); }
-  .manual-input { display: none; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1a2e4a; --teal: #0f7b7b; --teal-light: #e8f5f5;
+  --g50: #f8fafc; --g100: #f1f5f9; --g200: #e2e8f0;
+  --g400: #94a3b8; --g600: #475569; --g800: #1e293b;
+  --green: #059669; --green-light: #d1fae5;
+  --red: #dc2626; --red-light: #fee2e2;
+  --orange: #d97706; --orange-light: #fef3c7;
+}
+body { font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif; font-size:14px; color:var(--g800); background:var(--g50); min-height:100vh; }
+.header { background:var(--navy); color:white; padding:18px 32px; display:flex; align-items:center; gap:12px; }
+.header h1 { font-size:17px; font-weight:600; }
+.header small { font-size:13px; color:#94a3b8; }
+.container { max-width:960px; margin:0 auto; padding:28px 20px; }
+.card { background:white; border:1px solid var(--g200); border-radius:10px; padding:20px 24px; margin-bottom:16px; }
+.card-title { font-size:13px; font-weight:600; color:var(--g600); text-transform:uppercase; letter-spacing:.04em; margin-bottom:14px; display:flex; align-items:center; gap:6px; }
+.step { background:var(--navy); color:white; width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; }
+.upload-zone { border:1.5px dashed var(--g200); border-radius:8px; padding:22px 16px; text-align:center; cursor:pointer; transition:all .15s; position:relative; background:var(--g50); }
+.upload-zone:hover,.upload-zone.drag-over { border-color:var(--teal); background:var(--teal-light); }
+.upload-zone.done { border-color:var(--green); background:var(--green-light); border-style:solid; }
+.upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+.upload-icon { font-size:26px; margin-bottom:6px; }
+.upload-label { font-size:13px; font-weight:500; color:var(--g600); }
+.upload-sub { font-size:12px; color:var(--g400); margin-top:3px; }
+.upload-done { font-size:12px; color:var(--green); font-weight:600; margin-top:4px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.config-row { display:flex; gap:12px; margin-top:14px; align-items:flex-end; flex-wrap:wrap; }
+.field { display:flex; flex-direction:column; gap:4px; flex:1; min-width:130px; }
+.field label { font-size:12px; color:var(--g600); font-weight:500; }
+.field input,.field select { border:1px solid var(--g200); border-radius:6px; padding:7px 10px; font-size:13px; font-family:inherit; background:white; }
+.field input:focus,.field select:focus { outline:none; border-color:var(--teal); }
+.btn { padding:9px 20px; border-radius:7px; border:none; cursor:pointer; font-size:13px; font-family:inherit; font-weight:600; transition:all .15s; display:inline-flex; align-items:center; gap:6px; }
+.btn-navy { background:var(--navy); color:white; }
+.btn-navy:hover { background:#142338; }
+.btn-navy:disabled { background:var(--g200); color:var(--g400); cursor:not-allowed; }
+.btn-outline { background:white; border:1px solid var(--g200); color:var(--g800); }
+.btn-outline:hover { border-color:var(--teal); color:var(--teal); }
+.btn-lg { padding:12px 28px; font-size:14px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead tr { background:var(--navy); color:white; }
+th { padding:10px 12px; text-align:left; font-weight:500; font-size:12px; white-space:nowrap; }
+td { padding:9px 12px; border-bottom:1px solid var(--g100); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:var(--g50); }
+.badge { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:20px; font-size:12px; font-weight:600; }
+.ok { background:var(--green-light); color:var(--green); }
+.no { background:var(--red-light); color:var(--red); }
+.merged { background:#ede9fe; color:#6d28d9; }
+.manual-badge { background:var(--orange-light); color:var(--orange); }
+.summary-bar { display:flex; gap:16px; padding:14px 0; flex-wrap:wrap; }
+.sitem { display:flex; align-items:center; gap:6px; font-size:13px; }
+.snum { font-size:20px; font-weight:700; }
+.snum.green{color:var(--green);} .snum.red{color:var(--red);} .snum.navy{color:var(--navy);} .snum.purple{color:#6d28d9;}
+.sdiv { width:1px; background:var(--g200); height:36px; }
+.action-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
+.alert { padding:10px 14px; border-radius:7px; font-size:13px; margin-bottom:12px; display:flex; align-items:flex-start; gap:8px; }
+.alert-warn { background:var(--orange-light); color:#92400e; border:1px solid #fcd34d; }
+.alert-info { background:var(--teal-light); color:#065f46; border:1px solid #6ee7b7; }
+.progress-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; }
+.progress-overlay.show { display:flex; }
+.progress-box { background:white; border-radius:12px; padding:32px 40px; text-align:center; min-width:260px; }
+.spinner { width:40px; height:40px; border:3px solid var(--g200); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+@keyframes spin { to{transform:rotate(360deg);} }
+.progress-msg { font-size:14px; color:var(--g600); }
+.manual-upload-btn { font-size:11px; padding:3px 8px; border-radius:4px; border:1px solid var(--orange); color:var(--orange); background:white; cursor:pointer; white-space:nowrap; }
+.manual-upload-btn:hover { background:var(--orange-light); }
+.manual-input { display:none; }
 </style>
 </head>
 <body>
@@ -209,12 +81,11 @@
 <div class="header">
   <span>🧾</span>
   <h1>법인카드 영수증 정리 도구</h1>
-  <span>커리어사업부</span>
+  <small>커리어사업부</small>
 </div>
 
 <div class="container">
 
-  <!-- Step 1: Upload Excel -->
   <div class="card">
     <div class="card-title"><span class="step">1</span> 카드 사용 내역 엑셀 업로드</div>
     <div class="upload-zone" id="zone-excel">
@@ -225,62 +96,41 @@
       <div class="upload-done" id="excel-done" style="display:none"></div>
     </div>
     <div class="config-row">
-      <div class="field">
-        <label>부서명</label>
-        <input type="text" id="dept" placeholder="예: 커리어사업부" value="커리어사업부">
-      </div>
-      <div class="field">
-        <label>카드번호 (뒤 3자리)</label>
-        <input type="text" id="card-no" placeholder="예: 123" maxlength="3">
-      </div>
-      <div class="field">
-        <label>정산월</label>
-        <input type="month" id="settle-month">
-      </div>
+      <div class="field"><label>부서명</label><input type="text" id="dept" value="커리어사업부"></div>
+      <div class="field"><label>카드번호 (뒤 3자리)</label><input type="text" id="card-no" placeholder="예: 813" maxlength="3"></div>
+      <div class="field"><label>정산월</label><input type="month" id="settle-month"></div>
     </div>
   </div>
 
-  <!-- Step 2: Upload Receipts -->
   <div class="card">
     <div class="card-title"><span class="step">2</span> 영수증 이미지 업로드</div>
     <div class="upload-zone" id="zone-img">
       <input type="file" id="input-imgs" accept="image/*,.pdf" multiple>
       <div class="upload-icon">📎</div>
-      <div class="upload-label">영수증 이미지를 여기에 드래그하거나 클릭해서 선택</div>
-      <div class="upload-sub">JPG · PNG · PDF — 여러 파일 한 번에 가능</div>
+      <div class="upload-label">영수증 파일을 여기에 드래그하거나 클릭해서 선택</div>
+      <div class="upload-sub">JPG · PNG · PDF — 여러 파일 동시 가능</div>
       <div class="upload-done" id="imgs-done" style="display:none"></div>
     </div>
-    <div class="alert alert-info" style="margin-top:12px; margin-bottom:0">
-      💡 파일명에 금액 포함 시 매칭 정확도가 높아져요 — 예: <strong>중식_39200.jpg</strong>, <strong>노션_12000.pdf</strong>
+    <div class="alert alert-info" style="margin-top:12px;margin-bottom:0">
+      💡 파일명에 <strong>적요 + 금액</strong>을 포함하면 자동 매칭 정확도가 높아져요 — 예: <strong>중식_39200.jpg</strong>, <strong>야근택시비_12500.jpg</strong>
     </div>
   </div>
 
-  <!-- Step 3: Result -->
   <div class="card" id="result-card" style="display:none">
     <div class="action-bar">
       <div>
         <div class="card-title" style="margin-bottom:4px"><span class="step">3</span> 매칭 결과</div>
         <div class="summary-bar" id="summary-bar"></div>
       </div>
-      <button class="btn btn-navy btn-lg" id="btn-download" onclick="generateDocx()">
-        ⬇️ 증빙자료 내려받기 (.docx)
-      </button>
+      <button class="btn btn-navy btn-lg" onclick="generateDocx()">⬇️ 증빙자료 내려받기 (.docx)</button>
     </div>
     <div id="warnings"></div>
-    <div class="table-wrap">
+    <div style="overflow-x:auto">
       <table id="result-table">
-        <thead>
-          <tr>
-            <th>연번</th>
-            <th>승인일시</th>
-            <th>가맹점명</th>
-            <th>금액</th>
-            <th>적요</th>
-            <th>영수증</th>
-            <th>매칭 파일</th>
-            <th>수동 추가</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th>연번</th><th>승인일시</th><th>가맹점명</th><th>금액</th>
+          <th>적요</th><th>영수증</th><th>파일명</th><th>수동추가</th>
+        </tr></thead>
         <tbody id="result-body"></tbody>
       </table>
     </div>
@@ -288,66 +138,74 @@
 
 </div>
 
-<!-- Loading overlay -->
 <div class="progress-overlay" id="progress-overlay">
   <div class="progress-box">
     <div class="spinner"></div>
-    <div class="progress-msg" id="progress-msg">증빙자료 생성 중...</div>
+    <div class="progress-msg" id="progress-msg">생성 중...</div>
   </div>
 </div>
 
 <script>
-// ==================== STATE ====================
-let excelRows = [];      // parsed excel rows
-let receiptFiles = {};   // filename → File
-let matchedRows = [];    // [{...row, file, memo, matched}]
-let manualOverrides = {};// rowIdx → File (manual override)
+// ===== STATE =====
+let excelRows = [];
+let receiptFiles = {};   // name → File
+let matchedRows = [];    // final rows (merged included)
+let manualOverrides = {};// rowIdx → File[]
 
-// ==================== BRAND MAP ====================
+// ===== BRAND MAP (영한) =====
 const BRAND_MAP = {
-  'notion': ['노션'], 'zoom': ['줌', '줌미팅'], 'slack': ['슬랙'],
-  'google': ['구글'], 'microsoft': ['마이크로소프트', 'ms'],
-  'apple': ['애플'], 'aws': ['아마존'], 'figma': ['피그마'],
-  'dropbox': ['드롭박스'], 'adobe': ['어도비'],
-  'chatgpt': ['챗지피티', 'openai'], 'github': ['깃헙', '깃허브'],
-  'canva': ['캔바'], 'miro': ['미로'], 'monday': ['먼데이'],
-  'trello': ['트렐로'], 'asana': ['아사나'],
+  'notion':['노션'],'zoom':['줌'],'slack':['슬랙'],'google':['구글'],
+  'microsoft':['마이크로소프트','ms'],'apple':['애플'],'aws':['아마존'],
+  'figma':['피그마'],'dropbox':['드롭박스'],'adobe':['어도비'],
+  'chatgpt':['챗지피티','openai'],'github':['깃헙','깃허브'],
+  'canva':['캔바'],'miro':['미로'],
+  'baemin':['우아한형제들','배달의민족','배민'],
+  'coupangeats':['쿠팡이츠'],'yogiyo':['요기요'],
 };
+const MEAL_KEYWORDS = ['중식','석식','조식','야근택시비','택시비','간식','커피','회식','업무식사','노션','줌','슬랙','구글','구독료','노션구독','zoom구독'];
 
-function parseDateStr(s) {
-  if (!s) return null;
-  // 다양한 날짜 형식 처리: 2024-01-15, 24.01.15, 2024/01/15, 24년 01월 15일 등
-  const clean = String(s).replace(/[년월일\s]/g, '-').replace(/\./g, '-').replace(/\//g, '-').replace(/-+/g, '-').trim();
-  const parts = clean.split('-').filter(Boolean);
-  if (parts.length >= 3) {
-    let [y, m, d] = parts;
-    if (y.length === 2) y = '20' + y;
-    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`);
-  }
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
-}
-
-function normalizeName(s) {
+function normName(s) {
   if (!s) return '';
-  s = s.toLowerCase()
-    .replace(/[^\w가-힣]/g, '')
-    .replace(/주식회사|㈜|\(주\)|co\.|ltd\.|inc\./gi, '');
-  // brand mapping
+  s = s.toLowerCase().replace(/[^\w가-힣]/g,'').replace(/주식회사|㈜|\(주\)|co\.|ltd\.|inc\./gi,'');
   for (const [en, koList] of Object.entries(BRAND_MAP)) {
     if (s.includes(en)) return en;
-    for (const ko of koList) { if (s.includes(ko)) return en; }
+    for (const ko of koList) if (s.includes(ko)) return en;
   }
   return s;
 }
-
-function normalizeAmt(s) {
-  if (s === undefined || s === null) return null;
-  const n = parseInt(String(s).replace(/[^0-9]/g, ''), 10);
+function normAmt(s) {
+  const n = parseInt(String(s||'').replace(/[^0-9]/g,''), 10);
   return isNaN(n) ? null : n;
 }
+function parseDateStr(s) {
+  if (!s) return null;
+  const c = String(s).replace(/[년월일\s]/g,'-').replace(/[\./]/g,'-').replace(/-+/g,'-').trim();
+  const p = c.split('-').filter(Boolean);
+  if (p.length >= 3) {
+    let [y,m,d] = p;
+    if (y.length===2) y='20'+y;
+    return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`);
+  }
+  const d = new Date(s); return isNaN(d)?null:d;
+}
+function dateKey(s) {
+  const d = parseDateStr(s);
+  if (!d) return s;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function extractMemo(filename) {
+  const n = filename.replace(/\.[^.]+$/,''); // remove ext
+  for (const kw of MEAL_KEYWORDS) if (n.includes(kw)) return kw;
+  // fallback: first Korean word
+  const m = n.match(/[가-힣]+/);
+  return m ? m[0] : '';
+}
+function isBaeminRow(merchant) {
+  const n = normName(merchant);
+  return n === 'baemin' || merchant.includes('우아한형제') || merchant.includes('배달의민족') || merchant.includes('배민');
+}
 
-// ==================== EXCEL PARSING ====================
+// ===== EXCEL PARSE =====
 document.getElementById('input-excel').addEventListener('change', function(e) {
   const file = e.target.files[0]; if (!file) return;
   const reader = new FileReader();
@@ -356,568 +214,546 @@ document.getElementById('input-excel').addEventListener('change', function(e) {
       const wb = XLSX.read(ev.target.result, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
       const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
-      parseExcelRows(raw);
-      document.getElementById('excel-done').textContent = `✓ ${file.name} — ${excelRows.length}건 로드됨`;
+      parseExcel(raw);
+      document.getElementById('excel-done').textContent = `✓ ${file.name} — ${excelRows.length}건`;
       document.getElementById('excel-done').style.display = 'block';
       document.getElementById('zone-excel').classList.add('done');
       tryMatch();
-    } catch(err) {
-      alert('엑셀 파일을 읽을 수 없어요: ' + err.message);
-    }
+    } catch(err) { alert('엑셀 파일 오류: '+err.message); }
   };
   reader.readAsArrayBuffer(file);
 });
 
-function parseExcelRows(raw) {
+function parseExcel(raw) {
   excelRows = [];
-  // Find header row
-  let headerIdx = -1;
-  const headerCandidates = ['승인일', '가맹점', '금액', '이용금액', '승인금액', '사용금액'];
-  for (let i = 0; i < Math.min(raw.length, 10); i++) {
-    const row = raw[i].map(c => String(c).trim());
-    if (headerCandidates.some(h => row.some(c => c.includes(h)))) {
-      headerIdx = i; break;
-    }
+  let hIdx = -1;
+  const hCands = ['승인일','가맹점','금액','이용금액','승인금액'];
+  for (let i=0; i<Math.min(raw.length,10); i++) {
+    if (hCands.some(h=>raw[i].some(c=>String(c).includes(h)))) { hIdx=i; break; }
   }
-  if (headerIdx === -1) headerIdx = 0;
-
-  const headers = raw[headerIdx].map(c => String(c).trim());
-
-  // Column detection
-  const colIdx = {
-    date: -1, merchant: -1, amount: -1, memo: -1, approval: -1
-  };
-  headers.forEach((h, i) => {
-    const lh = h.toLowerCase();
-    if (colIdx.date === -1 && (lh.includes('승인일') || lh.includes('이용일') || lh.includes('거래일'))) colIdx.date = i;
-    if (colIdx.merchant === -1 && (lh.includes('가맹점') || lh.includes('상호') || lh.includes('거래처') || lh.includes('이용처'))) colIdx.merchant = i;
-    if (colIdx.amount === -1 && (lh.includes('이용금액') || lh.includes('승인금액') || lh.includes('사용금액') || lh.includes('금액'))) colIdx.amount = i;
-    if (colIdx.memo === -1 && (lh.includes('적요') || lh.includes('메모') || lh.includes('비고'))) colIdx.memo = i;
-    if (colIdx.approval === -1 && (lh.includes('승인번호') || lh.includes('거래번호'))) colIdx.approval = i;
+  if (hIdx===-1) hIdx=0;
+  const headers = raw[hIdx].map(c=>String(c).trim());
+  const ci = {date:-1,merchant:-1,amount:-1,memo:-1};
+  headers.forEach((h,i)=>{
+    const l=h.toLowerCase();
+    if (ci.date===-1 && (l.includes('승인일')||l.includes('이용일')||l.includes('거래일'))) ci.date=i;
+    if (ci.merchant===-1 && (l.includes('가맹점')||l.includes('상호')||l.includes('거래처')||l.includes('이용처'))) ci.merchant=i;
+    if (ci.amount===-1 && (l.includes('이용금액')||l.includes('승인금액')||l.includes('사용금액')||l.includes('금액'))) ci.amount=i;
+    if (ci.memo===-1 && (l.includes('적요')||l.includes('메모')||l.includes('비고'))) ci.memo=i;
   });
+  if (ci.merchant===-1) ci.merchant=Math.min(1,headers.length-1);
+  if (ci.amount===-1) ci.amount=Math.min(2,headers.length-1);
+  if (ci.date===-1) ci.date=0;
 
-  // Fallback: if merchant not found, use col 1 or 2
-  if (colIdx.merchant === -1) colIdx.merchant = Math.min(1, headers.length-1);
-  if (colIdx.amount === -1) colIdx.amount = Math.min(2, headers.length-1);
-  if (colIdx.date === -1) colIdx.date = 0;
-
-  for (let i = headerIdx + 1; i < raw.length; i++) {
-    const row = raw[i];
-    if (!row || row.every(c => String(c).trim() === '')) continue;
-    const merchant = String(row[colIdx.merchant] || '').trim();
-    const amtRaw = row[colIdx.amount];
-    const amount = normalizeAmt(amtRaw);
-    if (!merchant && !amount) continue;
-
-    let dateVal = row[colIdx.date];
-    let dateStr = '';
-    if (dateVal instanceof Date) {
-      dateStr = dateVal.toLocaleDateString('ko-KR', {year:'2-digit',month:'2-digit',day:'2-digit'});
-    } else {
-      dateStr = String(dateVal || '').trim();
-    }
-
+  for (let i=hIdx+1; i<raw.length; i++) {
+    const row=raw[i];
+    if (!row||row.every(c=>String(c).trim()==='')) continue;
+    const merchant=String(row[ci.merchant]||'').trim();
+    const amtRaw=row[ci.amount];
+    const amount=normAmt(amtRaw);
+    if (!merchant&&!amount) continue;
+    let dateStr='';
+    const dv=row[ci.date];
+    if (dv instanceof Date) dateStr=`${dv.getFullYear()}.${String(dv.getMonth()+1).padStart(2,'0')}.${String(dv.getDate()).padStart(2,'0')}.`;
+    else dateStr=String(dv||'').trim();
     excelRows.push({
-      idx: excelRows.length + 1,
-      date: dateStr,
-      merchant,
-      amount,
-      amtDisplay: amount ? amount.toLocaleString() + '원' : String(amtRaw||''),
-      memo: colIdx.memo >= 0 ? String(row[colIdx.memo]||'').trim() : '',
-      raw: row,
+      date:dateStr, merchant, amount,
+      amtDisplay: amount?amount.toLocaleString()+'원':String(amtRaw||''),
+      memo: ci.memo>=0?String(row[ci.memo]||'').trim():'',
     });
   }
 }
 
-// ==================== IMAGE UPLOAD ====================
+// ===== IMAGE UPLOAD =====
 document.getElementById('input-imgs').addEventListener('change', function(e) {
-  const files = Array.from(e.target.files);
-  files.forEach(f => { receiptFiles[f.name] = f; });
-  document.getElementById('imgs-done').textContent = `✓ ${Object.keys(receiptFiles).length}개 파일 로드됨`;
-  document.getElementById('imgs-done').style.display = 'block';
+  Array.from(e.target.files).forEach(f=>{ receiptFiles[f.name]=f; });
+  document.getElementById('imgs-done').textContent=`✓ ${Object.keys(receiptFiles).length}개 파일`;
+  document.getElementById('imgs-done').style.display='block';
   document.getElementById('zone-img').classList.add('done');
   tryMatch();
 });
 
-// Drag & drop
-['zone-excel','zone-img'].forEach(id => {
-  const zone = document.getElementById(id);
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag-over');
-    const input = zone.querySelector('input');
-    // trigger change manually
-    const dt = e.dataTransfer;
-    if (dt.files.length) {
-      // Create a new FileList-compatible trigger
-      const changeEvent = new Event('change');
-      Object.defineProperty(changeEvent, 'target', {value: {files: dt.files}});
-      input.dispatchEvent(changeEvent);
-    }
-  });
-});
-
-// ==================== MATCHING ====================
+// ===== MATCHING =====
 function tryMatch() {
-  if (excelRows.length === 0) return;
-  document.getElementById('result-card').style.display = 'block';
+  if (excelRows.length===0) return;
+  document.getElementById('result-card').style.display='block';
 
-  // 날짜순 정렬 (오래된 것부터)
-  const sorted = [...excelRows].sort((a, b) => {
-    const da = parseDateStr(a.date), db = parseDateStr(b.date);
-    if (da && db) return da - db;
-    return 0;
+  // 날짜순 정렬
+  const sorted = [...excelRows].sort((a,b)=>{
+    const da=parseDateStr(a.date), db=parseDateStr(b.date);
+    return (da&&db)?da-db:0;
   });
-  // 연번 재부여
-  sorted.forEach((r, i) => { r.idx = i + 1; });
 
-  matchedRows = sorted.map(row => {
-    const result = { ...row, file: null, matchedName: null, matchType: null };
+  // 각 엑셀 행에 영수증 파일 매칭
+  const withFiles = sorted.map(row => {
+    const result = {...row, files:[], matchType:null};
+    const entries = Object.entries(receiptFiles);
+    if (!entries.length) return result;
+    const nm = normName(row.merchant);
 
-    const fileEntries = Object.entries(receiptFiles);
-    if (fileEntries.length === 0) return result;
-
-    const normMerchant = normalizeName(row.merchant);
-
-    // Pass 1: merchant name + amount
-    for (const [fname, file] of fileEntries) {
-      const fnNorm = normalizeName(fname);
-      const fnAmt = normalizeAmt(fname.replace(/[^0-9]/g, ' ').trim().split(' ').find(s=>s.length>=4));
-      if (fnNorm.includes(normMerchant) || normMerchant.includes(fnNorm)) {
-        if (row.amount && fnAmt === row.amount) {
-          result.file = file; result.matchedName = fname; result.matchType = 'exact'; break;
-        }
+    // Pass1: 이름+금액
+    for (const [fn,f] of entries) {
+      const fnm=normName(fn);
+      const fa=normAmt(fn.replace(/[^0-9]/g,' ').trim().split(/\s+/).find(s=>s.length>=4)||'');
+      if ((fnm.includes(nm)||nm.includes(fnm))&&row.amount&&fa===row.amount) {
+        result.files=[f]; result.matchType='exact'; break;
       }
     }
-
-    // Pass 2: merchant name only
-    if (!result.file) {
-      for (const [fname, file] of fileEntries) {
-        const fnNorm = normalizeName(fname);
-        if (fnNorm.includes(normMerchant) || normMerchant.includes(fnNorm)) {
-          result.file = file; result.matchedName = fname; result.matchType = 'name'; break;
-        }
+    // Pass2: 이름만
+    if (!result.files.length) {
+      for (const [fn,f] of entries) {
+        const fnm=normName(fn);
+        if (fnm.includes(nm)||nm.includes(fnm)) { result.files=[f]; result.matchType='name'; break; }
       }
     }
-
-    // Pass 3: amount only (last resort)
-    if (!result.file && row.amount) {
-      for (const [fname, file] of fileEntries) {
-        const amtInName = normalizeAmt(fname.replace(/[^0-9]/g,''));
-        if (amtInName === row.amount) {
-          result.file = file; result.matchedName = fname; result.matchType = 'amount'; break;
-        }
+    // Pass3: 금액만
+    if (!result.files.length&&row.amount) {
+      for (const [fn,f] of entries) {
+        if (normAmt(fn.replace(/[^0-9]/g,''))===row.amount) { result.files=[f]; result.matchType='amount'; break; }
       }
     }
-
-    // Extract memo from filename
-    if (!result.memo && result.matchedName) {
-      const memoKeywords = ['중식','석식','조식','야근택시비','택시비','노션','줌','슬랙','구글','마이크로소프트','회식','간식','커피','업무식사'];
-      for (const kw of memoKeywords) {
-        if (result.matchedName.includes(kw)) { result.memo = kw; break; }
-      }
+    // 적요 추출
+    if (result.files.length) {
+      const m = extractMemo(result.files[0].name);
+      if (m) result.memo = m;
     }
-
     return result;
   });
 
+  // ===== 배민 병합 =====
+  // 같은 날짜 + 같은 적요(중식/석식) + 배민 → 1건으로 합산
+  const merged = [];
+  const usedIdx = new Set();
+  for (let i=0; i<withFiles.length; i++) {
+    if (usedIdx.has(i)) continue;
+    const row = withFiles[i];
+    const mealKws = ['중식','석식','조식'];
+    const rowMeal = mealKws.find(k=>row.memo.includes(k));
+    // 배민이고 meal 적요인 경우 다음 행 중 같은 날/적요 찾아서 병합
+    if (isBaeminRow(row.merchant) && rowMeal) {
+      for (let j=i+1; j<withFiles.length; j++) {
+        if (usedIdx.has(j)) continue;
+        const r2 = withFiles[j];
+        if (isBaeminRow(r2.merchant) && dateKey(r2.date)===dateKey(row.date)) {
+          const r2Meal = mealKws.find(k=>r2.memo.includes(k));
+          if (r2Meal===rowMeal) {
+            // 병합
+            const combined = {
+              ...row,
+              amount: (row.amount||0)+(r2.amount||0),
+              amtDisplay: ((row.amount||0)+(r2.amount||0)).toLocaleString()+'원',
+              files: [...row.files, ...r2.files],
+              merged: true,
+            };
+            merged.push(combined);
+            usedIdx.add(i); usedIdx.add(j);
+            break;
+          }
+        }
+      }
+    }
+    if (!usedIdx.has(i)) { merged.push(row); usedIdx.add(i); }
+  }
+
+  // 연번 부여
+  matchedRows = merged.map((r,i)=>({...r, idx:i+1}));
   renderTable();
 }
 
-// ==================== RENDER TABLE ====================
+// ===== RENDER TABLE =====
 function renderTable() {
-  const tbody = document.getElementById('result-body');
-  const matched = matchedRows.filter(r => r.file || manualOverrides[r.idx]).length;
   const total = matchedRows.length;
-  const unmatched = total - matched;
+  const matched = matchedRows.filter(r=>(r.files&&r.files.length)||manualOverrides[r.idx]).length;
+  const unmatched = total-matched;
+  const mergedCount = matchedRows.filter(r=>r.merged).length;
 
-  // Summary
-  document.getElementById('summary-bar').innerHTML = `
-    <div class="summary-item"><span class="summary-num navy">${total}</span><span>전체</span></div>
-    <div class="divider"></div>
-    <div class="summary-item"><span class="summary-num green">${matched}</span><span>매칭됨</span></div>
-    <div class="divider"></div>
-    <div class="summary-item"><span class="summary-num red">${unmatched}</span><span>미매칭</span></div>
+  document.getElementById('summary-bar').innerHTML=`
+    <div class="sitem"><span class="snum navy">${total}</span><span>전체</span></div>
+    <div class="sdiv"></div>
+    <div class="sitem"><span class="snum green">${matched}</span><span>매칭됨</span></div>
+    <div class="sdiv"></div>
+    <div class="sitem"><span class="snum red">${unmatched}</span><span>미매칭</span></div>
+    ${mergedCount?`<div class="sdiv"></div><div class="sitem"><span class="snum purple">${mergedCount}</span><span>배민병합</span></div>`:''}
   `;
 
-  // Warnings
-  let warns = '';
-  if (unmatched > 0) {
-    warns += `<div class="alert alert-warn">⚠️ ${unmatched}건 영수증이 매칭되지 않았어요. 아래 '수동 추가' 버튼으로 직접 연결하거나, 파일명에 가맹점명·금액을 포함해서 다시 업로드해보세요.</div>`;
-  }
-  document.getElementById('warnings').innerHTML = warns;
+  let warns='';
+  if (unmatched>0) warns+=`<div class="alert alert-warn">⚠️ ${unmatched}건 영수증 미매칭 — 아래 수동추가 버튼으로 직접 연결하거나, 파일명에 가맹점명·금액 포함 후 재업로드해보세요.</div>`;
+  document.getElementById('warnings').innerHTML=warns;
 
-  // Rows
-  tbody.innerHTML = '';
-  matchedRows.forEach((row, i) => {
-    const effectiveFile = manualOverrides[row.idx] || row.file;
-    const hasFile = !!effectiveFile;
-    const isPdf = effectiveFile && effectiveFile.name.toLowerCase().endsWith('.pdf');
-    const isManual = !!manualOverrides[row.idx];
-
-    const thumbId = `thumb-${i}`;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${row.idx}</td>
+  const tbody=document.getElementById('result-body');
+  tbody.innerHTML='';
+  matchedRows.forEach((row,i)=>{
+    const eff = (manualOverrides[row.idx]||[]).length ? manualOverrides[row.idx] : row.files;
+    const hasFile = eff&&eff.length>0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${row.idx}${row.merged?` <span class="badge merged">병합</span>`:''}</td>
       <td style="white-space:nowrap">${row.date}</td>
       <td>${row.merchant}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums">${row.amtDisplay}</td>
-      <td><input type="text" style="border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px;width:100%;font-family:inherit" 
-          value="${row.memo||''}" placeholder="적요 입력" onchange="matchedRows[${i}].memo=this.value"></td>
-      <td>
-        ${hasFile 
-          ? `<span class="badge ${isPdf ? 'badge-pdf' : 'badge-ok'}">${isPdf ? '📄 PDF' : '✓ 있음'}</span>`
-          : `<span class="badge badge-no">✗ 없음</span>`}
-      </td>
-      <td style="font-size:12px;color:#64748b;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-        ${isManual ? '<span class="badge badge-manual">수동</span> ' : ''}
-        ${effectiveFile ? effectiveFile.name : '—'}
-      </td>
-      <td>
-        <label class="manual-upload-btn">
-          📎 파일 선택
-          <input type="file" accept="image/*,.pdf" class="manual-input" onchange="handleManual(${i}, this)">
-        </label>
-      </td>
+      <td style="text-align:right">${row.amtDisplay}</td>
+      <td><input type="text" style="border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px;width:90px;font-family:inherit" value="${row.memo||''}" placeholder="적요" onchange="matchedRows[${i}].memo=this.value"></td>
+      <td>${hasFile?`<span class="badge ok">✓ ${eff.length}개</span>`:`<span class="badge no">✗ 없음</span>`}</td>
+      <td style="font-size:11px;color:#64748b;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${eff&&eff.length?eff.map(f=>f.name).join(', '):'—'}</td>
+      <td><label class="manual-upload-btn">📎 파일 선택<input type="file" accept="image/*,.pdf" multiple class="manual-input" onchange="handleManual(${i},this)"></label></td>
     `;
     tbody.appendChild(tr);
-
-    // Render thumbnail async
-    if (effectiveFile && !isPdf) {
-      const img = tr.querySelectorAll('td')[5];
-      // Don't render thumb in table (too heavy), just badge
-    }
   });
 }
 
-function handleManual(rowIdx, input) {
-  const file = input.files[0]; if (!file) return;
-  manualOverrides[matchedRows[rowIdx].idx] = file;
+function handleManual(rowIdx,input) {
+  const files=Array.from(input.files); if (!files.length) return;
+  manualOverrides[matchedRows[rowIdx].idx]=files;
   renderTable();
 }
 
-// ==================== DOCX GENERATION ====================
+// ===== DOCX GENERATION =====
 async function generateDocx() {
-  const dept = document.getElementById('dept').value || '커리어사업부';
-  const cardNo = document.getElementById('card-no').value || '';
-  const month = document.getElementById('settle-month').value || '';
-
-  if (matchedRows.length === 0) {
-    alert('먼저 엑셀 파일을 업로드해주세요.');
-    return;
-  }
-
+  if (!matchedRows.length) { alert('먼저 엑셀 파일을 업로드해주세요.'); return; }
+  const dept=document.getElementById('dept').value||'커리어사업부';
+  const cardNo=document.getElementById('card-no').value||'';
+  const month=document.getElementById('settle-month').value||'';
   showProgress('영수증 이미지 읽는 중...');
 
   try {
-    // 테이블의 현재 적요 값 수집 (사용자가 직접 수정했을 수 있음)
-    const memoInputs = document.querySelectorAll('#result-body input[type="text"]');
-
-    const rowsWithData = await Promise.all(matchedRows.map(async (row, i) => {
-      const effectiveFile = manualOverrides[row.idx] || row.file;
-      let imgBase64 = null, imgExt = null, imgMediaType = null;
-
-      if (effectiveFile && !effectiveFile.name.toLowerCase().endsWith('.pdf')) {
-        imgBase64 = await fileToBase64(effectiveFile);
-        imgMediaType = effectiveFile.type || 'image/jpeg';
-        imgExt = imgMediaType.includes('png') ? 'png' : 'jpeg';
+    const memoInputs=document.querySelectorAll('#result-body input[type="text"]');
+    const rows=await Promise.all(matchedRows.map(async(row,i)=>{
+      const effFiles=(manualOverrides[row.idx]||[]).length?manualOverrides[row.idx]:row.files;
+      const imgs=[];
+      for (const f of (effFiles||[])) {
+        if (f.name.toLowerCase().endsWith('.pdf')) continue; // PDF 스킵 (이미지만)
+        const b64=await fileToB64(f);
+        const mt=f.type||'image/jpeg';
+        imgs.push({b64, ext:mt.includes('png')?'png':'jpeg', mt});
       }
-
-      const currentMemo = memoInputs[i] ? memoInputs[i].value : (row.memo || '');
-
       return {
-        idx: row.idx,
-        date: row.date,
-        merchant: row.merchant,
-        amount: row.amtDisplay,
-        memo: currentMemo,
-        dept,
-        cardNo,
-        imgBase64,
-        imgExt,
-        imgMediaType,
-        hasImage: !!imgBase64,
+        idx:row.idx, date:row.date, merchant:row.merchant,
+        amtDisplay:row.amtDisplay, merged:row.merged||false,
+        memo:memoInputs[i]?memoInputs[i].value:(row.memo||''),
+        dept, cardNo, imgs,
       };
     }));
 
-    updateProgress('Word 문서 생성 중...');
-    await buildDocx(rowsWithData, dept, cardNo, month);
+    updateProgress('카드영수증 양식 생성 중...');
+    await buildDocx(rows, dept, cardNo, month);
     hideProgress();
-
   } catch(err) {
-    hideProgress();
-    console.error(err);
-    alert('오류가 발생했어요:\n' + err.message);
+    hideProgress(); console.error(err);
+    alert('오류: '+err.message);
   }
 }
 
-function fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result.split(',')[1]);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
+function fileToB64(file) {
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(',')[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
   });
 }
 
-async function fileToArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => resolve(e.target.result);
-    reader.onerror = reject;
-    reader.readAsArrayBuffer(file);
-  });
-}
-
+// ===== DOCX BUILD =====
+// 양식: 카드영수증 1건 = 1페이지
+// 페이지 레이아웃: A4 세로, 상단 테이블(메타), 하단 영수증 이미지
 async function buildDocx(rows, dept, cardNo, month) {
   const zip = new JSZip();
+  const imageRels = {}; // rId → {b64,ext}
+  let rIdC = 2;
 
   // 이미지 관계 등록
-  const imageRels = {}; // rId → {base64, ext, mediaType}
-  let rIdCounter = 2;
-
-  rows.forEach(row => {
-    if (!row.hasImage) return;
-    const rId = `rId${rIdCounter++}`;
-    imageRels[rId] = { base64: row.imgBase64, ext: row.imgExt, mediaType: row.imgMediaType };
-    row.rId = rId;
+  rows.forEach(row=>{
+    row.imgs.forEach(img=>{
+      const rId=`rId${rIdC++}`;
+      imageRels[rId]={b64:img.b64, ext:img.ext};
+      img.rId=rId;
+    });
   });
 
-  // 이미지 파일 zip에 추가
-  for (const [rId, rel] of Object.entries(imageRels)) {
-    zip.file(`word/media/${rId}.${rel.ext}`, rel.base64, { base64: true });
+  // zip에 이미지 파일 추가
+  for (const [rId,rel] of Object.entries(imageRels)) {
+    zip.file(`word/media/${rId}.${rel.ext}`, rel.b64, {base64:true});
   }
 
-  // [Content_Types].xml
-  const extSet = new Set(Object.values(imageRels).map(r => r.ext));
-  const defaults = [
+  // Content_Types
+  const exts=new Set(Object.values(imageRels).map(r=>r.ext));
+  const ctDefaults=[
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
     '<Default Extension="xml" ContentType="application/xml"/>',
   ];
-  if (extSet.has('jpeg')) defaults.push('<Default Extension="jpeg" ContentType="image/jpeg"/>');
-  if (extSet.has('png'))  defaults.push('<Default Extension="png"  ContentType="image/png"/>');
-
-  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  if (exts.has('jpeg')) ctDefaults.push('<Default Extension="jpeg" ContentType="image/jpeg"/>');
+  if (exts.has('png')) ctDefaults.push('<Default Extension="png" ContentType="image/png"/>');
+  zip.file('[Content_Types].xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  ${defaults.join('\n  ')}
+  ${ctDefaults.join('\n  ')}
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/word/styles.xml"   ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+  <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
   <Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/>
 </Types>`);
 
-  // _rels/.rels
-  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('_rels/.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>`);
 
-  // word/_rels/document.xml.rels
-  const relEntries = [
-    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`
-  ];
-  for (const [rId, rel] of Object.entries(imageRels)) {
+  const relEntries=[`<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`];
+  for (const [rId,rel] of Object.entries(imageRels)) {
     relEntries.push(`<Relationship Id="${rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${rId}.${rel.ext}"/>`);
   }
-  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file('word/_rels/document.xml.rels',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   ${relEntries.join('\n  ')}
 </Relationships>`);
 
-  // settings.xml
-  zip.file('word/settings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:defaultTabStop w:val="720"/>
-</w:settings>`);
+  zip.file('word/settings.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:defaultTabStop w:val="720"/></w:settings>`);
 
-  // styles.xml
-  zip.file('word/styles.xml', buildStylesXml());
+  zip.file('word/styles.xml', stylesXml());
 
-  // ---- document.xml 작성 ----
-  const pageW = 12240;  // A4 세로 기준 (DXA)
-  const pageH = 16838;
-  const marg  = 720;    // 0.5인치 여백
-  const contentW = pageW - marg * 2; // 10800
+  // ===== document.xml =====
+  // A4: 11906 x 16838 DXA, 여백 720(0.5인치)
+  const PW=11906, PH=16838, MG=720;
+  const CW=PW-MG*2; // 10466
 
-  // 컬럼 너비: 연번, 날짜, 가맹점, 금액, 적요, 영수증
-  const cols = [560, 1300, 2200, 1200, 1540, 4000];
-  // 합계가 contentW에 맞는지 확인
-  const colSum = cols.reduce((a,b) => a+b, 0); // 10800
+  // 폰트 헬퍼
+  const F='Malgun Gothic';
+  function rpr(opts={}) {
+    const b=opts.b?'<w:b/><w:bCs/>':'';
+    const sz=opts.sz?`<w:sz w:val="${opts.sz}"/><w:szCs w:val="${opts.sz}"/>`:' <w:sz w:val="22"/><w:szCs w:val="22"/>';
+    const col=opts.col?`<w:color w:val="${opts.col}"/>`:'';
+    return `<w:rPr>${b}${sz}${col}<w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr>`;
+  }
+  function run(text, opts={}) {
+    return `<w:r>${rpr(opts)}<w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
+  }
+  function para(content, opts={}) {
+    const jc=opts.jc?`<w:jc w:val="${opts.jc}"/>`:'';
+    const sp=opts.sp?`<w:spacing w:before="${opts.sp[0]||0}" w:after="${opts.sp[1]||0}"/>`:'';
+    const bd=opts.bd?`<w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="000000"/></w:pBdr>`:'';
+    return `<w:p><w:pPr>${jc}${sp}${bd}<w:rPr><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr></w:pPr>${content}</w:p>`;
+  }
 
-  // 헬퍼: 일반 텍스트 셀
-  function tc(text, w, opt={}) {
-    const fill   = opt.fill   ? `<w:shd w:val="clear" w:color="auto" w:fill="${opt.fill}"/>` : '';
-    const bold   = opt.bold   ? '<w:b/><w:bCs/>' : '';
-    const color  = opt.color  ? `<w:color w:val="${opt.color}"/>` : '';
-    const sz     = opt.sz     ? `<w:sz w:val="${opt.sz}"/><w:szCs w:val="${opt.sz}"/>` : '<w:sz w:val="18"/><w:szCs w:val="18"/>';
-    const jc     = opt.align  ? `<w:jc w:val="${opt.align}"/>` : '';
-    const vAlign = `<w:vAlign w:val="${opt.vAlign || 'center'}"/>`;
+  // 테이블 셀 헬퍼
+  // 카드영수증 양식 테이블: 경계선 있는 표 형태
+  function tc(text, w, opts={}) {
+    const fill=opts.fill?`<w:shd w:val="clear" w:color="auto" w:fill="${opts.fill}"/>`:'';
+    const va=`<w:vAlign w:val="${opts.va||'center'}"/>`;
+    const jc=opts.jc?`<w:jc w:val="${opts.jc}"/>`:'';
+    const rp=rpr({b:opts.b, sz:opts.sz||22, col:opts.col});
     return `<w:tc>
-  <w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill}${vAlign}
+  <w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${fill}${va}
     <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>
   </w:tcPr>
-  <w:p><w:pPr>${jc}<w:rPr>${bold}${color}${sz}<w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/></w:rPr></w:pPr>
-  <w:r><w:rPr>${bold}${color}${sz}<w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/></w:rPr>
-    <w:t xml:space="preserve">${escXml(text)}</w:t></w:r></w:p>
+  <w:p><w:pPr>${jc}<w:rPr><w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/></w:rPr></w:pPr>
+  <w:r>${rp}<w:t xml:space="preserve">${esc(text)}</w:t></w:r></w:p>
 </w:tc>`;
   }
 
-  // 헬퍼: 이미지 셀
-  let imgDrawingId = 1;
-  function imgTc(rId, w) {
-    const emuW = Math.round((w - 240) * 914400 / 1440);
-    const emuH = Math.round(emuW * 0.68);
-    const id = imgDrawingId++;
-    return `<w:tc>
-  <w:tcPr><w:tcW w:w="${w}" w:type="dxa"/><w:vAlign w:val="center"/>
-    <w:tcMar><w:top w:w="80" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>
-  </w:tcPr>
-  <w:p><w:pPr><w:jc w:val="center"/></w:pPr>
-  <w:r><w:rPr/><w:drawing>
-    <wp:inline distT="0" distB="0" distL="0" distR="0"
-      xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
-      <wp:extent cx="${emuW}" cy="${emuH}"/>
-      <wp:effectExtent l="0" t="0" r="0" b="0"/>
-      <wp:docPr id="${id}" name="Receipt${id}" descr="영수증"/>
-      <wp:cNvGraphicFramePr/>
-      <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-        <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-          <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-            <pic:nvPicPr>
-              <pic:cNvPr id="${id}" name="Receipt${id}"/>
-              <pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr>
-            </pic:nvPicPr>
-            <pic:blipFill>
-              <a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-                <a:extLst><a:ext uri="{28A0092B-C50C-407E-A947-70E740481C1C}">
-                  <a14:useLocalDpi xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" val="0"/>
-                </a:ext></a:extLst>
-              </a:blip>
-              <a:stretch><a:fillRect/></a:stretch>
-            </pic:blipFill>
-            <pic:spPr>
-              <a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm>
-              <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-            </pic:spPr>
-          </pic:pic>
-        </a:graphicData>
-      </a:graphic>
-    </wp:inline>
-  </w:drawing></w:r></w:p>
-</w:tc>`;
+  // 이미지 그리기 헬퍼
+  let drawId=1;
+  function imgDrawing(rId, emuW, emuH) {
+    const id=drawId++;
+    return `<w:drawing>
+  <wp:inline distT="0" distB="0" distL="0" distR="0"
+    xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing">
+    <wp:extent cx="${emuW}" cy="${emuH}"/>
+    <wp:effectExtent l="0" t="0" r="0" b="0"/>
+    <wp:docPr id="${id}" name="Img${id}"/>
+    <wp:cNvGraphicFramePr/>
+    <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+      <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+        <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+          <pic:nvPicPr><pic:cNvPr id="${id}" name="Img${id}"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr>
+          <pic:blipFill>
+            <a:blip r:embed="${rId}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"/>
+            <a:stretch><a:fillRect/></a:stretch>
+          </pic:blipFill>
+          <pic:spPr>
+            <a:xfrm><a:off x="0" y="0"/><a:ext cx="${emuW}" cy="${emuH}"/></a:xfrm>
+            <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+          </pic:spPr>
+        </pic:pic>
+      </a:graphicData>
+    </a:graphic>
+  </wp:inline>
+</w:drawing>`;
   }
 
-  // 테이블 행 생성
-  let tblRows = '';
+  // ===== 각 결제건 → 1페이지 =====
+  // 양식 구조:
+  //   제목행: 카 드 영 수 증 (가운데, 굵게, 큰 글씨)
+  //   메타 테이블: 연번/부서/카드번호 | 영수증일자/금액 | 사용처/적요
+  //   영수증 이미지 영역 (나머지 공간)
 
-  // 헤더 행
-  tblRows += `<w:tr>
-    <w:trPr><w:tblHeader/><w:trHeight w:val="480" w:hRule="atLeast"/></w:trPr>
-    ${tc('연번',   cols[0], {fill:'1A2E4A', bold:true, color:'FFFFFF', align:'center'})}
-    ${tc('승인일시', cols[1], {fill:'1A2E4A', bold:true, color:'FFFFFF'})}
-    ${tc('가맹점명', cols[2], {fill:'1A2E4A', bold:true, color:'FFFFFF'})}
-    ${tc('금액',   cols[3], {fill:'1A2E4A', bold:true, color:'FFFFFF', align:'right'})}
-    ${tc('적요',   cols[4], {fill:'1A2E4A', bold:true, color:'FFFFFF'})}
-    ${tc('영수증',  cols[5], {fill:'1A2E4A', bold:true, color:'FFFFFF', align:'center'})}
-  </w:tr>`;
+  // 테이블 전체 너비 = CW
+  // 컬럼: [레이블W, 값W, 레이블W, 값W] × 반복
+  // 양식 PDF 구조 재현:
+  //   행1: [연번 레이블|연번값|부서 레이블|부서값|카드번호 레이블|카드번호값]
+  //   행2: [영수증 일자 레이블|날짜값|금액 레이블|금액값]
+  //   행3: [사용처 레이블|빈칸|적요 레이블|적요값]
 
-  rows.forEach((row, i) => {
-    const rowFill = i % 2 === 0 ? 'FFFFFF' : 'F8FAFC';
-    const imgCell = row.rId
-      ? imgTc(row.rId, cols[5])
-      : tc('영수증 없음', cols[5], {fill:rowFill, color:'DC2626', align:'center'});
+  const brd = {
+    top:{s:'single',sz:8,col:'000000'},
+    bot:{s:'single',sz:8,col:'000000'},
+    lft:{s:'single',sz:8,col:'000000'},
+    rgt:{s:'single',sz:8,col:'000000'},
+    ins:{s:'single',sz:4,col:'000000'},
+  };
+  function brdAttr(b) {
+    return `w:val="${b.s}" w:sz="${b.sz}" w:space="0" w:color="${b.col}"`;
+  }
+  const tblBrd=`<w:tblBorders>
+    <w:top ${brdAttr(brd.top)}/><w:left ${brdAttr(brd.lft)}/>
+    <w:bottom ${brdAttr(brd.bot)}/><w:right ${brdAttr(brd.rgt)}/>
+    <w:insideH ${brdAttr(brd.ins)}/><w:insideV ${brdAttr(brd.ins)}/>
+  </w:tblBorders>`;
 
-    tblRows += `<w:tr>
-      <w:trPr><w:trHeight w:val="600" w:hRule="atLeast"/></w:trPr>
-      ${tc(String(row.idx),  cols[0], {fill:rowFill, align:'center'})}
-      ${tc(row.date,         cols[1], {fill:rowFill})}
-      ${tc(row.merchant,     cols[2], {fill:rowFill})}
-      ${tc(row.amount,       cols[3], {fill:rowFill, align:'right'})}
-      ${tc(row.memo||'',     cols[4], {fill:rowFill})}
-      ${imgCell}
+  function labelTc(text, w) {
+    return tc(text, w, {fill:'E8EFF7', b:true, sz:20});
+  }
+  function valTc(text, w, opts={}) {
+    return tc(text, w, {sz:22, ...opts});
+  }
+
+  // 컬럼 너비 설계 (총 CW=10466)
+  // 행1: 연번라벨(900) 연번값(700) 부서라벨(900) 부서값(2266) 카드번호라벨(1200) 카드번호값(1200) = but 3cols each label+val
+  // 더 균일하게: 6칸
+  const LW=1300, VW=2200; // label, value (×3 = 9600, 나머지 866 분배)
+  // 실제: 3쌍 → 레이블3개+값3개 = CW
+  // LW1=1100, VW1=2388 × 3 = 10464 ≈ CW
+  const L1=1400, V1=2089; // row1: 3쌍 = (1400+2089)*3 = 10467 ≈ CW
+  const L2=1400, V2=3834; // row2: 2쌍 = (1400+3834)*2 = 10468
+  const L3=1400, V3=3834; // row3: 2쌍
+
+  function metaTable(row) {
+    const cols1=[L1,V1,L1,V1,L1,V1];
+    const cols2=[L2,V2,L2,V2];
+    const cols3=[L3,V3,L3,V3];
+
+    const row1=`<w:tr><w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+      ${labelTc('연 번',cols1[0])}${valTc(String(row.idx),cols1[1],{jc:'center',b:true})}
+      ${labelTc('부   서',cols1[2])}${valTc(row.dept,cols1[3])}
+      ${labelTc('카드번호',cols1[4])}${valTc(row.cardNo,cols1[5],{jc:'center'})}
     </w:tr>`;
+    const row2=`<w:tr><w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+      ${labelTc('영수증 일자',cols2[0])}${valTc(row.date,cols2[1])}
+      ${labelTc('금   액',cols2[2])}${valTc(row.amtDisplay,cols2[3],{jc:'right',b:true})}
+    </w:tr>`;
+    const row3=`<w:tr><w:trPr><w:trHeight w:val="500" w:hRule="atLeast"/></w:trPr>
+      ${labelTc('사 용 처',cols3[0])}${valTc(row.merchant,cols3[1])}
+      ${labelTc('적   요',cols3[2])}${valTc(row.memo,cols3[3])}
+    </w:tr>`;
+
+    const allCols=[...cols1,...cols2,...cols3];
+    // tblGrid: 6칸 (row1기준)
+    const gridXml=cols1.map(c=>`<w:gridCol w:w="${c}"/>`).join('');
+
+    return `<w:tbl>
+  <w:tblPr>
+    <w:tblW w:w="${CW}" w:type="dxa"/>
+    <w:tblLayout w:type="fixed"/>
+    ${tblBrd}
+    <w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tblCellMar>
+  </w:tblPr>
+  <w:tblGrid>${gridXml}</w:tblGrid>
+  ${row1}
+  ${row2}
+  ${row3}
+</w:tbl>`;
+  }
+
+  // 이미지 영역: 페이지 남은 공간 채우기
+  // 메타테이블 약 1500 DXA 높이 → 나머지 이미지에 할당
+  // A4 콘텐츠 높이 = PH-MG*2 = 15398 DXA
+  // 제목 약 600, 메타테이블 약 1600 → 이미지 영역 ≈ 13000 DXA → EMU 변환
+  // 이미지 1개: 전체 너비, 비율에 맞는 높이
+  // 이미지 2개(병합): 나란히 배치
+
+  function imgArea(imgs) {
+    if (!imgs||!imgs.length) {
+      return para(run('(영수증 이미지 없음)', {col:'DC2626'}), {sp:[200,0]});
+    }
+    const imgH_DXA = 10800; // 약 19cm
+    if (imgs.length===1) {
+      const emuW=Math.round(CW*914400/1440);
+      const emuH=Math.round(imgH_DXA*914400/1440);
+      return `<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="200" w:after="0"/></w:pPr>
+  <w:r><w:rPr/>${imgDrawing(imgs[0].rId, emuW, emuH)}</w:r></w:p>`;
+    } else {
+      // 이미지 2개: 나란히 (각 절반 너비)
+      const emuW=Math.round((CW/2-100)*914400/1440);
+      const emuH=Math.round(imgH_DXA*914400/1440);
+      // 테이블로 2열 배치
+      return `<w:tbl>
+  <w:tblPr><w:tblW w:w="${CW}" w:type="dxa"/><w:tblLayout w:type="fixed"/>
+    <w:tblBorders><w:top w:val="none"/><w:left w:val="none"/><w:bottom w:val="none"/><w:right w:val="none"/><w:insideH w:val="none"/><w:insideV w:val="none"/></w:tblBorders>
+  </w:tblPr>
+  <w:tblGrid><w:gridCol w:w="${Math.floor(CW/2)}"/><w:gridCol w:w="${Math.ceil(CW/2)}"/></w:tblGrid>
+  <w:tr>
+    ${imgs.map(img=>`<w:tc>
+      <w:tcPr><w:tcW w:w="${Math.floor(CW/2)}" w:type="dxa"/><w:vAlign w:val="center"/></w:tcPr>
+      <w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="200" w:after="0"/></w:pPr>
+      <w:r><w:rPr/>${imgDrawing(img.rId,emuW,emuH)}</w:r></w:p>
+    </w:tc>`).join('')}
+  </w:tr>
+</w:tbl>`;
+    }
+  }
+
+  // 페이지 본문 조립
+  let body='';
+  rows.forEach((row,i)=>{
+    const isLast=(i===rows.length-1);
+
+    // 제목
+    body+=para(run('카  드  영  수  증',{b:true,sz:32}),{jc:'center',sp:[0,240]});
+    // 메타 테이블
+    body+=metaTable(row);
+    // 이미지
+    body+=imgArea(row.imgs);
+    // 페이지 나누기 (마지막 페이지 제외)
+    if (!isLast) body+=`<w:p><w:pPr><w:pageBreakBefore/><w:spacing w:before="0" w:after="0"/></w:pPr></w:p>`;
   });
 
-  const tableXml = `<w:tbl>
-  <w:tblPr>
-    <w:tblStyle w:val="TableGrid"/>
-    <w:tblW w:w="${colSum}" w:type="dxa"/>
-    <w:tblLayout w:type="fixed"/>
-    <w:tblBorders>
-      <w:top    w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-      <w:left   w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-      <w:bottom w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-      <w:right  w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-      <w:insideH w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-      <w:insideV w:val="single" w:sz="4" w:space="0" w:color="D1D5DB"/>
-    </w:tblBorders>
-  </w:tblPr>
-  <w:tblGrid>${cols.map(c=>`<w:gridCol w:w="${c}"/>`).join('')}</w:tblGrid>
-  ${tblRows}
-</w:tbl>`;
-
-  // 제목
-  const titleStr = `${month ? month.replace('-','년 ')+'월 ' : ''}법인카드 영수증 증빙자료`;
-  const subStr   = `${dept}${cardNo ? '  |  카드번호 끝자리 ***' + cardNo : ''}`;
-
-  const docXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  const docXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document
   xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
   xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
   xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
   xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
-  xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main">
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <w:body>
-  <w:p>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="120"/></w:pPr>
-    <w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="28"/><w:szCs w:val="28"/>
-      <w:color w:val="1A2E4A"/>
-      <w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/>
-    </w:rPr><w:t>${escXml(titleStr)}</w:t></w:r>
-  </w:p>
-  <w:p>
-    <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="240"/></w:pPr>
-    <w:r><w:rPr><w:sz w:val="18"/><w:szCs w:val="18"/><w:color w:val="64748B"/>
-      <w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/>
-    </w:rPr><w:t>${escXml(subStr)}</w:t></w:r>
-  </w:p>
-  ${tableXml}
-  <w:sectPr>
-    <w:pgSz w:w="${pageW}" w:h="${pageH}"/>
-    <w:pgMar w:top="${marg}" w:right="${marg}" w:bottom="${marg}" w:left="${marg}"/>
-  </w:sectPr>
+${body}
+<w:sectPr>
+  <w:pgSz w:w="${PW}" w:h="${PH}"/>
+  <w:pgMar w:top="${MG}" w:right="${MG}" w:bottom="${MG}" w:left="${MG}"/>
+</w:sectPr>
 </w:body>
 </w:document>`;
 
   zip.file('word/document.xml', docXml);
 
-  // 생성 & 다운로드
   updateProgress('파일 압축 중...');
-  const blob = await zip.generateAsync({
-    type: 'blob',
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 },
+  const blob=await zip.generateAsync({
+    type:'blob',
+    mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    compression:'DEFLATE', compressionOptions:{level:6},
   });
 
-  const fname = `증빙자료_법인카드_${(month||'정산').replace('-','년')}월.docx`;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fname; document.body.appendChild(a); a.click();
+  const fname=`증빙자료_${(month||'').replace('-','년')}월_${dept}_${cardNo}_카드영수증.docx`;
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=fname; document.body.appendChild(a); a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 
-function buildStylesXml() {
+function stylesXml() {
+  const F='Malgun Gothic';
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:docDefaults>
-    <w:rPrDefault><w:rPr>
-      <w:rFonts w:ascii="Malgun Gothic" w:hAnsi="Malgun Gothic" w:eastAsia="Malgun Gothic"/>
-      <w:sz w:val="22"/><w:szCs w:val="22"/>
-    </w:rPr></w:rPrDefault>
-  </w:docDefaults>
+  <w:docDefaults><w:rPrDefault><w:rPr>
+    <w:rFonts w:ascii="${F}" w:hAnsi="${F}" w:eastAsia="${F}"/>
+    <w:sz w:val="22"/><w:szCs w:val="22"/>
+  </w:rPr></w:rPrDefault></w:docDefaults>
   <w:style w:type="table" w:styleId="TableGrid">
     <w:name w:val="Table Grid"/>
     <w:tblPr><w:tblBorders>
@@ -932,31 +768,18 @@ function buildStylesXml() {
 </w:styles>`;
 }
 
-function escXml(s) {
-  return String(s||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&apos;');
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 }
 
-// ==================== PROGRESS ====================
-function showProgress(msg) {
-  document.getElementById('progress-msg').textContent = msg;
-  document.getElementById('progress-overlay').classList.add('show');
-}
-function updateProgress(msg) {
-  document.getElementById('progress-msg').textContent = msg;
-}
-function hideProgress() {
-  document.getElementById('progress-overlay').classList.remove('show');
-}
+// ===== PROGRESS =====
+function showProgress(msg){document.getElementById('progress-msg').textContent=msg;document.getElementById('progress-overlay').classList.add('show');}
+function updateProgress(msg){document.getElementById('progress-msg').textContent=msg;}
+function hideProgress(){document.getElementById('progress-overlay').classList.remove('show');}
 
-// ==================== INIT ====================
-// Set default month to current
-const now = new Date();
-document.getElementById('settle-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+// INIT
+const now=new Date();
+document.getElementById('settle-month').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 </script>
 </body>
 </html>
