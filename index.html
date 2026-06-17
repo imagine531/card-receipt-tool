@@ -215,8 +215,7 @@ function extractMemo(filename) {
   for (const {kw,match} of MEAL_KEYWORDS) {
     if (match.some(m => n.includes(m))) return kw;
   }
-  const m = n.match(/[가-힣]+/);
-  return m ? m[0] : '';
+  return ''; // 못 찾으면 빈칸, 사용자가 직접 입력
 }
 function isBaemin(merchant) {
   const n = normName(merchant);
@@ -330,13 +329,9 @@ function tryMatch() {
         if (fileAmtFromName(fn)===row.amount) { result.files=[f]; result.matchType='amount'; break; }
       }
     }
-    // 적요 추출
+    // 적요 추출 — 매칭된 파일명에서만
     if (result.files.length) {
       const m=extractMemo(result.files[0].name);
-      if (m) result.memo=m;
-    }
-    if (!result.memo) {
-      const m=extractMemo(result.merchant);
       if (m) result.memo=m;
     }
     return result;
